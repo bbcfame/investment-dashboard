@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Investment Performance Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0d0f14;--s1:#141720;--s2:#1c2030;--s3:#242840;--bd:rgba(255,255,255,0.07);--bd2:rgba(255,255,255,0.13);--tx:#e8eaf0;--mu:#6b7280;--gr:#4ade80;--gr2:#22c55e;--rd:#f87171;--bl:#60a5fa;--am:#fbbf24;--pu:#a78bfa;--mn:'IBM Plex Mono',monospace;--sn:'IBM Plex Sans Thai',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);color:var(--tx);font-family:var(--sn);font-size:14px}
+body{min-height:100vh}
+
+/* TABS */
+.topbar{background:var(--s1);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 24px;gap:4px;position:sticky;top:0;z-index:50}
+.brand{font-family:var(--mn);font-size:11px;color:var(--gr);letter-spacing:.1em;padding:16px 16px 16px 0;border-right:1px solid var(--bd);margin-right:12px;white-space:nowrap}
+.tab{padding:16px 16px;font-size:13px;color:var(--mu);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--tx)}
+.tab.on{color:var(--gr);border-bottom-color:var(--gr)}
+.page{display:none;padding:28px 28px}
+.page.on{display:block}
+
+/* CARDS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.metric{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden}
+.metric::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ln,var(--gr));opacity:.5}
+.metric.bl{--ln:var(--bl)}.metric.am{--ln:var(--am)}.metric.pu{--ln:var(--pu)}.metric.rd{--ln:var(--rd)}
+.mlb{font-size:10px;color:var(--mu);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px}
+.mvl{font-size:22px;font-weight:600;font-family:var(--mn);line-height:1;margin-bottom:5px}
+.msb{font-size:11px;color:var(--mu);font-family:var(--mn)}
+.up{color:var(--gr)}.dn{color:var(--rd)}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.g22{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:20px 22px;margin-bottom:14px}
+.card-last{margin-bottom:0}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.ct{font-size:13px;font-weight:500}
+.cb{font-size:10px;font-family:var(--mn);color:var(--mu);background:var(--s2);padding:3px 8px;border-radius:5px}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:10px;color:var(--mu);font-weight:500;text-align:left;padding:0 0 8px;letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--bd)}
+.tbl th.r{text-align:right}.tbl th.c{text-align:center}
+.tbl td{padding:10px 0;border-bottom:1px solid var(--bd);color:var(--tx);vertical-align:middle}
+.tbl td.r{text-align:right;font-family:var(--mn);font-size:11px}
+.tbl td.c{text-align:center}
+.tbl tr:last-child td{border-bottom:none}
+.ticker{font-family:var(--mn);font-size:12px;font-weight:500}
+.tname{font-size:10px;color:var(--mu);margin-top:1px}
+.tag{display:inline-block;font-size:9px;font-family:var(--mn);padding:2px 5px;border-radius:3px;margin-left:4px;letter-spacing:.04em}
+.tg-s{background:rgba(96,165,250,.15);color:var(--bl)}
+.tg-g{background:rgba(251,191,36,.15);color:var(--am)}
+.tg-c{background:rgba(167,139,250,.15);color:var(--pu)}
+.tg-o{background:rgba(248,113,113,.15);color:var(--rd)}
+.tg-e{background:rgba(74,222,128,.12);color:var(--gr)}
+.tg-usd{background:rgba(74,222,128,.18);color:#34d399;border:1px solid rgba(74,222,128,.25)}
+.fx-bar{background:var(--s2);border-bottom:1px solid var(--bd);padding:8px 24px;display:flex;align-items:center;gap:16px;font-size:11px;color:var(--mu);font-family:var(--mn)}
+.fx-bar label{color:var(--mu);white-space:nowrap}
+.fx-inp{background:var(--s1);border:1px solid var(--bd2);color:var(--gr);font-family:var(--mn);font-size:12px;padding:3px 8px;border-radius:5px;outline:none;width:80px;text-align:right}
+.fx-inp:focus{border-color:var(--gr)}
+.fx-rate{color:var(--tx);font-weight:500}
+.cur-badge{display:inline-block;font-size:9px;font-family:var(--mn);padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle}
+.cur-thb{background:rgba(251,191,36,.12);color:var(--am)}
+.cur-usd{background:rgba(74,222,128,.15);color:var(--gr)}
+.delbtn{background:none;border:none;color:var(--mu);cursor:pointer;font-size:13px;padding:2px 6px;transition:color .1s}
+.delbtn:hover{color:var(--rd)}
+
+/* FORM */
+.form-row{margin-bottom:12px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.flb{font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;display:block}
+.finp{width:100%;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);font-family:var(--mn);font-size:12px;padding:8px 10px;border-radius:7px;outline:none;transition:border-color .15s}
+.finp:focus{border-color:var(--gr)}
+.fsel{width:100%;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);font-family:var(--sn);font-size:12px;padding:8px 10px;border-radius:7px;outline:none;cursor:pointer}
+.fsel option{background:var(--s2)}
+.ftxt{width:100%;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);font-family:var(--sn);font-size:12px;padding:8px 10px;border-radius:7px;outline:none;resize:vertical;min-height:70px}
+.add-section{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:18px;margin-bottom:16px}
+.add-title{font-size:12px;font-weight:500;color:var(--tx);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.add-title::before{content:'';display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--gr)}
+.btn-row{display:flex;gap:8px;margin-top:14px}
+.btn{padding:8px 16px;border-radius:7px;font-family:var(--sn);font-size:12px;cursor:pointer;border:none;transition:all .15s;font-weight:500}
+.btn-g{background:var(--gr2);color:#000}.btn-g:hover{background:var(--gr)}
+.btn-w{background:transparent;color:var(--mu);border:1px solid var(--bd2)}.btn-w:hover{color:var(--tx)}
+.btn-r{background:rgba(248,113,113,.15);color:var(--rd);border:1px solid rgba(248,113,113,.2)}.btn-r:hover{background:rgba(248,113,113,.25)}
+
+/* CHART */
+.chwrap{position:relative;width:100%;height:220px}
+.chwrap-sm{position:relative;width:100%;height:160px}
+
+/* PERF ROW */
+.pr{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd);font-size:12px}
+.pr:last-child{border-bottom:none}
+.prl{color:var(--mu)}
+.chip{font-size:11px;font-family:var(--mn);padding:3px 9px;border-radius:5px;font-weight:500}
+.chip-g{background:rgba(74,222,128,.12);color:var(--gr)}
+.chip-r{background:rgba(248,113,113,.12);color:var(--rd)}
+.chip-b{background:rgba(96,165,250,.12);color:var(--bl)}
+.chip-a{background:rgba(251,191,36,.12);color:var(--am)}
+
+/* STATUS */
+.statusbar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--bd2);padding:10px 18px;border-radius:10px;font-size:12px;font-family:var(--mn);display:none;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.5);white-space:nowrap}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px;color:var(--mu);font-size:12px}
+.empty-icon{font-size:32px;margin-bottom:10px}
+
+/* BADGE P/L */
+.pl-badge{display:inline-block;padding:3px 8px;border-radius:5px;font-family:var(--mn);font-size:11px;font-weight:500}
+.pl-g{background:rgba(74,222,128,.12);color:var(--gr)}
+.pl-r{background:rgba(248,113,113,.12);color:var(--rd)}
+
+/* divider */
+.div{border:none;border-top:1px solid var(--bd);margin:16px 0}
+
+/* SECTION LABEL */
+.slb{font-size:10px;color:var(--mu);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+
+@media(max-width:900px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .g2,.g3,.g22{grid-template-columns:1fr}
+  .form-row-2,.form-row-3{grid-template-columns:1fr}
+  .page{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">INVEST·DASH</div>
+  <div class="tab on" onclick="showTab('overview')">ภาพรวม</div>
+  <div class="tab" onclick="showTab('trades')">ซื้อ-ขาย หุ้น/ทอง/BTC</div>
+  <div class="tab" onclick="showTab('options')">Options P&L</div>
+  <div class="tab" onclick="showTab('analysis')">วิเคราะห์</div>
+</div>
+
+<!-- FX BAR -->
+<div class="fx-bar">
+  <span>💱 อัตราแลกเปลี่ยน USD/THB:</span>
+  <input class="fx-inp" id="fx-rate" type="number" step="0.01" value="35.50" onchange="updateFxRate()" />
+  <span class="fx-rate">฿ / $1</span>
+  <span style="margin-left:8px;color:var(--bd2)">|</span>
+  <span style="margin-left:8px">มูลค่าพอร์ตในดอลลาร์: <span id="fx-usd-total" style="color:var(--gr);font-weight:500">$0</span></span>
+  <span style="margin-left:auto;font-size:10px;color:var(--mu)">แก้ไขตัวเลขได้ตลอด — ระบบจะคำนวณใหม่ทันที</span>
+</div>
+
+<!-- ═══════════ PAGE: OVERVIEW ═══════════ -->
+<div class="page on" id="p-overview">
+
+  <!-- LIVE PRICE SOURCE -->
+  <div class="add-section" style="border-color:rgba(74,222,128,.25)">
+    <div class="add-title" style="color:var(--gr)">📡 อัปเดตราคาปัจจุบันแบบ Real-time (Google Finance)</div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:10px;line-height:1.8">
+      หน้าเว็บนี้เป็นไฟล์ static เชื่อมต่อ Google Finance โดยตรงไม่ได้ (ติด CORS + ไม่มี public API ให้ใช้ฟรี)<br>
+      วิธีที่ใช้ได้จริง: สร้าง Google Sheet ที่ดึงราคาด้วยสูตร <code style="background:var(--s1);padding:1px 6px;border-radius:4px;color:var(--gr)">GOOGLEFINANCE()</code> แล้วเผยแพร่เป็น CSV ให้หน้านี้ดึงมาอ่านอัตโนมัติ
+      (<span style="color:var(--bl);cursor:pointer;text-decoration:underline" onclick="document.getElementById('sheet-guide').style.display=document.getElementById('sheet-guide').style.display==='none'?'block':'none'">ดูวิธีทำแบบละเอียด</span>)
+    </div>
+    <div id="sheet-guide" style="display:none;background:var(--s1);border-radius:8px;padding:14px 16px;margin-bottom:12px;font-size:11px;color:var(--tx);line-height:2">
+      <b style="color:var(--gr)">ขั้นตอน (ทำครั้งเดียว ใช้ได้ตลอด):</b><br>
+      1. เปิด <a href="https://sheets.google.com" target="_blank" style="color:var(--bl)">Google Sheets</a> → สร้างชีตใหม่<br>
+      2. แถวแรกใส่หัวตาราง: <code style="color:var(--am)">A1=Symbol, B1=Price</code><br>
+      3. แถวถัดไปใส่ตามนี้ (แก้ ticker ให้ตรงกับที่คุณถือ):<br>
+      &nbsp;&nbsp;• <code style="color:var(--am)">A2=USDTHB</code> &nbsp; <code style="color:var(--am)">B2==GOOGLEFINANCE("CURRENCY:USDTHB")</code> ← อัตราแลกเปลี่ยน<br>
+      &nbsp;&nbsp;• <code style="color:var(--am)">A3=NVDA</code> &nbsp; <code style="color:var(--am)">B3==GOOGLEFINANCE("NASDAQ:NVDA","price")</code> ← หุ้นนอก<br>
+      &nbsp;&nbsp;• <code style="color:var(--am)">A4=AOT</code> &nbsp; <code style="color:var(--am)">B4==GOOGLEFINANCE("SET:AOT","price")</code> ← หุ้นไทย (ถ้าพิมพ์แล้ว error ให้ลองเปลี่ยนเป็น <code style="color:var(--am)">"BKK:AOT"</code> แทน — Google บล็อกตลาด SET เป็นบางช่วง ถ้าไม่ขึ้นเลยระบบจะไปดึงจาก Yahoo Finance ให้อัตโนมัติแทน)<br>
+      &nbsp;&nbsp;• <code style="color:var(--am)">A5=BTC</code> &nbsp; <code style="color:var(--am)">B5==GOOGLEFINANCE("CURRENCY:BTCUSD")</code> ← คริปโต<br>
+      4. เมนู <b>File → Share → Publish to web</b> → เลือกชีตนี้ → format เลือก <b>Comma-separated values (.csv)</b> → กด Publish<br>
+      5. คัดลอกลิงก์ที่ได้ (ขึ้นต้นด้วย <code style="color:var(--bl)">https://docs.google.com/spreadsheets/d/e/...</code>) มาวางช่องด้านล่าง<br>
+      <span style="color:var(--mu)">* ราคาในชีตจะอัปเดตเองทุกครั้งที่ Google Sheets sync (ปกติทุก 1-5 นาที) กดปุ่ม "ดึงราคาล่าสุด" ที่นี่เพื่อซิงก์เข้าหน้าเว็บ</span>
+    </div>
+    <div class="form-row-2">
+      <div>
+        <label class="flb">ลิงก์ Google Sheet (Publish to web → CSV)</label>
+        <input class="finp" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" />
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:8px">
+        <button class="btn btn-g" onclick="fetchLivePrices()" style="flex:1">📡 ดึงราคาล่าสุด</button>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--mu);margin-top:6px" id="live-updated">ยังไม่เคยอัปเดต</div>
+  </div>
+
+  <div class="metrics" id="ov-metrics">
+    <div class="metric"><div class="mlb">มูลค่าพอร์ตรวม</div><div class="mvl" id="ov-total">฿0</div><div class="msb" id="ov-totalsub">—</div></div>
+    <div class="metric bl"><div class="mlb">กำไร/ขาดทุนที่รับรู้แล้ว</div><div class="mvl" id="ov-pnl">฿0</div><div class="msb" id="ov-pnlpct">—</div></div>
+    <div class="metric" style="--ln:var(--pu)"><div class="mlb">กำไร/ขาดทุนที่ยังไม่รับรู้ (Unrealized)</div><div class="mvl" id="ov-unreal" style="color:var(--pu)">฿0</div><div class="msb" id="ov-unrealsub">—</div></div>
+    <div class="metric am"><div class="mlb">กำไร Options รวม</div><div class="mvl" id="ov-opt">฿0</div><div class="msb" id="ov-optsub">—</div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><div class="ct">สรุปสินทรัพย์ทั้งหมด</div><div class="cb" id="ov-count">0 รายการ</div></div>
+      <table class="tbl" id="ov-table">
+        <thead><tr><th>สินทรัพย์</th><th class="r">ถืออยู่</th><th class="r">ราคาปัจจุบัน</th><th class="r">กำไรที่รับรู้แล้ว</th><th class="r">กำไรที่ยังไม่รับรู้</th></tr></thead>
+        <tbody id="ov-tbody"></tbody>
+      </table>
+      <div class="empty" id="ov-empty"><div class="empty-icon">📊</div>ยังไม่มีข้อมูล — เริ่มบันทึกที่แท็บ "ซื้อ-ขาย"</div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">สัดส่วนสินทรัพย์</div></div>
+      <div class="chwrap-sm"><canvas id="ov-donut"></canvas></div>
+      <div id="ov-legend" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="g22">
+    <div class="card card-last">
+      <div class="ch"><div class="ct">P&L รายเดือน (ซื้อ-ขาย)</div></div>
+      <div class="chwrap"><canvas id="ov-bar"></canvas></div>
+    </div>
+    <div class="card card-last">
+      <div class="ch"><div class="ct">สถิติสำคัญ</div></div>
+      <div class="pr"><span class="prl">รายการทำกำไร</span><span class="chip chip-g" id="st-win">—</span></div>
+      <div class="pr"><span class="prl">รายการขาดทุน</span><span class="chip chip-r" id="st-lose">—</span></div>
+      <div class="pr"><span class="prl">กำไรสูงสุด</span><span class="chip chip-g" id="st-best">—</span></div>
+      <div class="pr"><span class="prl">ขาดทุนมากสุด</span><span class="chip chip-r" id="st-worst">—</span></div>
+      <div class="pr"><span class="prl">Options Win Rate</span><span class="chip chip-b" id="st-optwin">—</span></div>
+      <div class="pr"><span class="prl">Options กำไรเฉลี่ย</span><span class="chip chip-a" id="st-optavg">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: TRADES ═══════════ -->
+<div class="page" id="p-trades">
+
+  <!-- BULK IMPORT -->
+  <div class="add-section" style="border-color:rgba(96,165,250,.25)">
+    <div class="add-title" style="color:var(--bl)">📥 นำเข้าหลายรายการพร้อมกัน (วางจากอีเมล/สเตทเมนต์โบรกเกอร์)</div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:10px;line-height:1.7">
+      คัดลอกข้อมูลจากอีเมลยืนยันคำสั่งซื้อขาย หรือไฟล์ CSV ที่โบรกเกอร์ส่งมา แล้ววางที่นี่ — 1 บรรทัดต่อ 1 รายการ<br>
+      รูปแบบ: <code style="background:var(--s1);padding:2px 6px;border-radius:4px;color:var(--gr)">วันที่, ชื่อ, ซื้อ/ขาย, จำนวน, ราคา, ค่าธรรมเนียม</code><br>
+      ตัวอย่าง: <code style="background:var(--s1);padding:2px 6px;border-radius:4px;color:var(--mu)">2026-08-01, AOT, buy, 1000, 62.5, 20</code>
+    </div>
+    <textarea class="ftxt" id="bulk-input" style="min-height:100px;font-family:var(--mn);font-size:11px" placeholder="2026-08-01, AOT, buy, 1000, 62.5, 20
+2026-08-03, KBANK, sell, 500, 140, 15
+2026-08-05, BTC, buy, 0.01, 65000, 5"></textarea>
+    <div class="form-row-2" style="margin-top:10px">
+      <div>
+        <label class="flb">ประเภทสินทรัพย์ (สำหรับทุกบรรทัด)</label>
+        <select class="fsel" id="bulk-type">
+          <option value="stock">📈 หุ้น</option>
+          <option value="gold">🥇 ทอง</option>
+          <option value="crypto">₿ คริปโต</option>
+          <option value="etf">📦 ETF/กองทุน</option>
+        </select>
+      </div>
+      <div>
+        <label class="flb">สกุลเงิน (สำหรับทุกบรรทัด)</label>
+        <select class="fsel" id="bulk-currency">
+          <option value="THB">🇹🇭 บาท (THB)</option>
+          <option value="USD">🇺🇸 ดอลลาร์ (USD)</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-g" onclick="bulkImport()">📥 นำเข้าทั้งหมด</button>
+      <button class="btn btn-w" onclick="document.getElementById('bulk-input').value=''">ล้างข้อความ</button>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <div class="add-section">
+    <div class="add-title">บันทึกรายการซื้อ-ขาย (ทีละรายการ)</div>
+    <div class="form-row-3">
+      <div>
+        <label class="flb">ประเภทสินทรัพย์</label>
+        <select class="fsel" id="t-type" onchange="updateTradeTypeUI()">
+          <option value="stock">📈 หุ้น (Stock)</option>
+          <option value="gold">🥇 ทอง (Gold)</option>
+          <option value="crypto">₿ คริปโต (BTC/ETH)</option>
+          <option value="etf">📦 ETF / กองทุน</option>
+        </select>
+      </div>
+      <div>
+        <label class="flb">ชื่อ / Ticker</label>
+        <input class="finp" id="t-name" placeholder="เช่น AOT, KBANK, BTC, ทองคำ" />
+      </div>
+      <div>
+        <label class="flb">ประเภทรายการ</label>
+        <select class="fsel" id="t-action">
+          <option value="buy">ซื้อ (BUY)</option>
+          <option value="sell">ขาย (SELL)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row-3">
+      <div>
+        <label class="flb">วันที่</label>
+        <input class="finp" id="t-date" type="date" />
+      </div>
+      <div>
+        <label class="flb">สกุลเงิน</label>
+        <select class="fsel" id="t-currency" onchange="updateCurrencyLabel()">
+          <option value="THB">🇹🇭 บาท (THB ฿)</option>
+          <option value="USD">🇺🇸 ดอลลาร์ (USD $)</option>
+        </select>
+      </div>
+      <div>
+        <label class="flb">จำนวน (หุ้น/หน่วย/กรัม)</label>
+        <input class="finp" id="t-qty" type="number" step="any" placeholder="100" />
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div>
+        <label class="flb" id="t-price-label">ราคาต่อหน่วย (฿ THB)</label>
+        <input class="finp" id="t-price" type="number" step="any" placeholder="50.00" />
+      </div>
+      <div>
+        <label class="flb" id="t-fee-label">ค่าธรรมเนียม (฿ THB) — ถ้ามี</label>
+        <input class="finp" id="t-fee" type="number" step="any" placeholder="0" />
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="flb">หมายเหตุ</label>
+      <input class="finp" id="t-note" placeholder="เช่น ซื้อตอนตลาดปรับ" />
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-g" onclick="addTrade()">+ บันทึกรายการ</button>
+      <button class="btn btn-w" onclick="clearTradeForm()">ล้างข้อมูล</button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card card-last">
+    <div class="ch">
+      <div class="ct">รายการซื้อ-ขายทั้งหมด</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="fsel" style="font-size:11px;padding:4px 8px;width:auto" id="t-filter" onchange="renderTrades()">
+          <option value="all">ทุกประเภท</option>
+          <option value="stock">หุ้น</option>
+          <option value="gold">ทอง</option>
+          <option value="crypto">คริปโต</option>
+          <option value="etf">ETF</option>
+        </select>
+        <div class="cb" id="t-count">0 รายการ</div>
+      </div>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>วันที่</th>
+          <th>สินทรัพย์</th>
+          <th class="c">ซื้อ/ขาย</th>
+          <th class="r">จำนวน</th>
+          <th class="r">ราคา/หน่วย</th>
+          <th class="r">มูลค่า (สกุลต้น)</th>
+          <th class="r">มูลค่า (฿)</th>
+          <th class="r">ค่าธรรมเนียม</th>
+          <th>หมายเหตุ</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="t-tbody"></tbody>
+    </table>
+    <div class="empty" id="t-empty"><div class="empty-icon">📋</div>ยังไม่มีรายการ — กรอกข้อมูลด้านบนแล้วกด "บันทึกรายการ"</div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: OPTIONS ═══════════ -->
+<div class="page" id="p-options">
+
+  <div class="add-section">
+    <div class="add-title">บันทึก Options Trade</div>
+    <div class="form-row-3">
+      <div>
+        <label class="flb">Underlying (หุ้น/ดัชนี)</label>
+        <input class="finp" id="o-underlying" placeholder="เช่น SET50, AAPL, SPY" />
+      </div>
+      <div>
+        <label class="flb">ประเภท</label>
+        <select class="fsel" id="o-type">
+          <option value="call-buy">Long Call</option>
+          <option value="put-buy">Long Put</option>
+          <option value="call-sell">Short Call</option>
+          <option value="put-sell">Short Put</option>
+          <option value="straddle">Straddle</option>
+          <option value="spread">Spread</option>
+          <option value="other">อื่นๆ</option>
+        </select>
+      </div>
+      <div>
+        <label class="flb">วันที่เปิด Position</label>
+        <input class="finp" id="o-open-date" type="date" />
+      </div>
+    </div>
+    <div class="form-row-3">
+      <div>
+        <label class="flb">สกุลเงิน</label>
+        <select class="fsel" id="o-currency" onchange="updateOptCurrencyLabel()">
+          <option value="THB">🇹🇭 บาท (THB ฿)</option>
+          <option value="USD">🇺🇸 ดอลลาร์ (USD $)</option>
+        </select>
+      </div>
+      <div>
+        <label class="flb" id="o-premium-label">Premium ที่จ่าย/รับ (฿)</label>
+        <input class="finp" id="o-premium" type="number" step="any" placeholder="0" />
+      </div>
+      <div>
+        <label class="flb">จำนวน Contract</label>
+        <input class="finp" id="o-contracts" type="number" placeholder="1" value="1" />
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div>
+        <label class="flb">สถานะ</label>
+        <select class="fsel" id="o-status" onchange="toggleOptPnlField()">
+          <option value="open">🟡 Open (ยังถือ)</option>
+          <option value="closed">✅ Closed (ปิดแล้ว)</option>
+          <option value="expired">⬜ Expired (หมดอายุ)</option>
+        </select>
+      </div>
+      <div id="o-pnl-wrap" style="display:none">
+        <label class="flb" id="o-pnl-label">กำไร/ขาดทุน (฿) เมื่อปิด</label>
+        <input class="finp" id="o-pnl" type="number" step="any" placeholder="ติดลบ = ขาดทุน" />
+      </div>
+    </div>
+    <details style="margin-top:4px">
+      <summary style="cursor:pointer;font-size:11px;color:var(--mu);padding:6px 0;user-select:none">+ รายละเอียดเพิ่มเติม (Strike, วันหมดอายุ, บันทึก) — ไม่บังคับ</summary>
+      <div style="margin-top:10px">
+        <div class="form-row-2">
+          <div>
+            <label class="flb" id="o-strike-label">Strike Price (฿)</label>
+            <input class="finp" id="o-strike" type="number" step="any" placeholder="ไม่บังคับ" />
+          </div>
+          <div>
+            <label class="flb">วันหมดอายุ</label>
+            <input class="finp" id="o-expiry" type="date" />
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label class="flb">บันทึก / กลยุทธ์</label>
+          <textarea class="ftxt" id="o-note" placeholder="เช่น ซื้อ Call เพราะคาดว่าตลาดจะขึ้นหลังข่าว Fed, SL ที่ -50%" style="min-height:50px"></textarea>
+        </div>
+      </div>
+    </details>
+    <div class="btn-row">
+      <button class="btn btn-g" onclick="addOption()">+ บันทึก Options</button>
+      <button class="btn btn-w" onclick="clearOptionForm()">ล้างข้อมูล</button>
+    </div>
+  </div>
+
+  <div class="g22">
+    <div class="card">
+      <div class="ch"><div class="ct">สรุป Options</div></div>
+      <div class="pr"><span class="prl">P&L รวม (ปิดแล้ว)</span><span class="chip" id="oo-total">฿0</span></div>
+      <div class="pr"><span class="prl">Win Rate</span><span class="chip chip-b" id="oo-win">0%</span></div>
+      <div class="pr"><span class="prl">Avg กำไร/ครั้ง</span><span class="chip chip-g" id="oo-avgwin">฿0</span></div>
+      <div class="pr"><span class="prl">Avg ขาดทุน/ครั้ง</span><span class="chip chip-r" id="oo-avgloss">฿0</span></div>
+      <div class="pr"><span class="prl">กำลัง Open</span><span class="chip chip-a" id="oo-open">0 position</span></div>
+      <div class="pr"><span class="prl">หมดอายุแล้ว</span><span class="chip" style="background:var(--s2);color:var(--mu)" id="oo-exp">0 position</span></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">P&L Options รายรายการ</div></div>
+      <div class="chwrap-sm"><canvas id="o-bar"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card card-last">
+    <div class="ch">
+      <div class="ct">รายการ Options ทั้งหมด</div>
+      <div class="cb" id="o-count">0 รายการ</div>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>วันที่เปิด</th>
+          <th>Underlying</th>
+          <th>ประเภท</th>
+          <th class="r">Strike</th>
+          <th class="r">Premium</th>
+          <th class="r">Contract</th>
+          <th class="r">P&L</th>
+          <th class="c">สถานะ</th>
+          <th>บันทึก</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="o-tbody"></tbody>
+    </table>
+    <div class="empty" id="o-empty"><div class="empty-icon">📝</div>ยังไม่มีรายการ Options</div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: ANALYSIS ═══════════ -->
+<div class="page" id="p-analysis">
+  <div class="g22">
+    <div class="card">
+      <div class="ch"><div class="ct">P&L ตามประเภทสินทรัพย์</div></div>
+      <div class="chwrap"><canvas id="an-bar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">Win/Loss Ratio</div></div>
+      <div class="chwrap"><canvas id="an-pie"></canvas></div>
+    </div>
+  </div>
+  <div class="g22">
+    <div class="card">
+      <div class="ch"><div class="ct">ค่าธรรมเนียมสะสม</div></div>
+      <div class="chwrap"><canvas id="an-fee"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">สรุปเชิงลึก</div></div>
+      <div class="pr"><span class="prl">มูลค่าซื้อขายรวม (Turnover)</span><span class="chip chip-b" id="an-turnover">฿0</span></div>
+      <div class="pr"><span class="prl">ค่าธรรมเนียมรวม</span><span class="chip chip-r" id="an-fee-total">฿0</span></div>
+      <div class="pr"><span class="prl">สินทรัพย์ที่ดีที่สุด</span><span class="chip chip-g" id="an-best">—</span></div>
+      <div class="pr"><span class="prl">สินทรัพย์ที่แย่ที่สุด</span><span class="chip chip-r" id="an-worst">—</span></div>
+      <div class="pr"><span class="prl">เดือนที่กำไรสูงสุด</span><span class="chip chip-g" id="an-bestmon">—</span></div>
+      <div class="pr"><span class="prl">จำนวนรายการทั้งหมด</span><span class="chip chip-a" id="an-trades">0</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="statusbar" id="sb"></div>
+
+<script>
+// ═══════════════════════════════
+// DATA
+// ═══════════════════════════════
+let trades  = JSON.parse(localStorage.getItem('inv_trades')  || '[]');
+let options = JSON.parse(localStorage.getItem('inv_options') || '[]');
+
+// ตัวอย่างข้อมูลสำหรับผู้ใช้ใหม่
+if (trades.length === 0) {
+  const today = new Date(); const fmt = d => d.toISOString().slice(0,10);
+  const d = (n) => { const x = new Date(); x.setDate(x.getDate()-n); return fmt(x); };
+  trades = [
+    { id:1, type:'stock', name:'AOT',   action:'buy',  date:d(90), qty:8000, price:55,    fee:200,  currency:'THB', note:'ซื้อพื้นฐาน' },
+    { id:2, type:'stock', name:'AOT',   action:'sell', date:d(30), qty:3000, price:62.5,  fee:120,  currency:'THB', note:'ขายบางส่วน' },
+    { id:3, type:'stock', name:'KBANK', action:'buy',  date:d(60), qty:2500, price:145,   fee:150,  currency:'THB', note:'' },
+    { id:4, type:'gold',  name:'ทองคำ', action:'buy',  date:d(45), qty:5,    price:32000, fee:0,    currency:'THB', note:'บาทละ 32,000' },
+    { id:5, type:'gold',  name:'ทองคำ', action:'sell', date:d(10), qty:3,    price:36000, fee:0,    currency:'THB', note:'ทำกำไร' },
+    { id:6, type:'crypto',name:'BTC',   action:'buy',  date:d(120),qty:0.05, price:60000, fee:15,   currency:'USD', note:'ซื้อผ่าน exchange ต่างประเทศ' },
+    { id:7, type:'stock', name:'NVDA',  action:'buy',  date:d(70), qty:20,   price:620,   fee:5,    currency:'USD', note:'หุ้นสหรัฐฯ' },
+  ];
+  localStorage.setItem('inv_trades', JSON.stringify(trades));
+}
+if (options.length === 0) {
+  const d = (n) => { const x = new Date(); x.setDate(x.getDate()-n); return x.toISOString().slice(0,10); };
+  options = [
+    { id:1, underlying:'SET50', type:'call-buy',  openDate:d(40), strike:880, premium:2500,  contracts:2, expiry:d(10), pnl:4800,  status:'closed', currency:'THB', note:'Long Call ก่อนประชุม Fed' },
+    { id:2, underlying:'SET50', type:'put-buy',   openDate:d(25), strike:860, premium:1800,  contracts:1, expiry:d(5),  pnl:-1800, status:'expired',currency:'THB', note:'ตลาดไม่ลง' },
+    { id:3, underlying:'AAPL',  type:'call-sell', openDate:d(15), strike:200, premium:90,    contracts:1, expiry:d(20), pnl:0,     status:'open',   currency:'USD', note:'Short Call เก็บ premium' },
+  ];
+  localStorage.setItem('inv_options', JSON.stringify(options));
+}
+
+const save = () => {
+  localStorage.setItem('inv_trades',  JSON.stringify(trades));
+  localStorage.setItem('inv_options', JSON.stringify(options));
+};
+
+// ═══════════════════════════════
+// FX / CURRENCY
+// ═══════════════════════════════
+let fxRate = parseFloat(localStorage.getItem('inv_fxrate')) || 35.50;
+
+function updateFxRate() {
+  const v = parseFloat(document.getElementById('fx-rate').value);
+  if (!v || v <= 0) { showStatus('⚠ อัตราแลกเปลี่ยนไม่ถูกต้อง'); return; }
+  fxRate = v;
+  localStorage.setItem('inv_fxrate', fxRate);
+  renderOverview(); renderTrades(); renderOptions(); renderAnalysis();
+  showStatus(`✓ อัปเดตอัตราแลกเปลี่ยนเป็น ${fxRate} ฿/$`);
+}
+// แปลงมูลค่าใดๆ เป็นบาท ตามสกุลเงินต้นทาง
+const toTHB = (amount, currency) => currency === 'USD' ? amount * fxRate : amount;
+const curSym = currency => currency === 'USD' ? '$' : '฿';
+
+// ═══════════════════════════════
+// LIVE PRICES (Google Sheet CSV bridge + Yahoo fallback for Thai stocks)
+// ═══════════════════════════════
+let livePrices = JSON.parse(localStorage.getItem('inv_liveprices') || '{}'); // { SYMBOL: { price, currency } }
+document.addEventListener('DOMContentLoaded', () => {
+  const savedUrl = localStorage.getItem('inv_sheet_url');
+  if (savedUrl) document.getElementById('sheet-url').value = savedUrl;
+  const savedTime = localStorage.getItem('inv_live_updated');
+  if (savedTime) document.getElementById('live-updated').textContent = 'อัปเดตล่าสุด: ' + savedTime;
+});
+
+function parseCSV(text) {
+  // แยกบรรทัด, รองรับ comma และ tab
+  const rows = text.trim().split('\n').map(r => r.split(/,|\t/).map(c => c.trim().replace(/^"|"$/g,'')));
+  return rows;
+}
+
+async function fetchYahooFallback(sym) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
+    const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(url), { signal: AbortSignal.timeout(6000) });
+    const data = await res.json();
+    return data?.chart?.result?.[0]?.meta?.regularMarketPrice ?? null;
+  } catch(e) { return null; }
+}
+
+// Google Sheets ไม่เปิด CORS ให้ fetch() ตรงๆ ต้องอ้อมผ่าน proxy — ลองหลายตัวจนกว่าจะสำเร็จ
+async function fetchCSVWithProxy(url) {
+  const attempts = [
+    () => fetch(url, { signal: AbortSignal.timeout(8000) }), // เผื่อบางกรณีเปิดได้ตรงๆ
+    () => fetch('https://corsproxy.io/?' + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) }),
+    () => fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(10000) }),
+  ];
+  let lastErr = null;
+  for (const attempt of attempts) {
+    try {
+      const res = await attempt();
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      if (text && text.trim().length > 0) return text;
+    } catch(e) { lastErr = e; }
+  }
+  throw lastErr || new Error('ทุกช่องทางดึงข้อมูลล้มเหลว');
+}
+
+async function fetchLivePrices() {
+  const url = document.getElementById('sheet-url').value.trim();
+  showStatus('📡 กำลังดึงราคาล่าสุด…');
+  const sheetMap = {}; // SYMBOL(upper) -> price
+  let sheetError = null;
+
+  if (url) {
+    localStorage.setItem('inv_sheet_url', url);
+    try {
+      const text = await fetchCSVWithProxy(url);
+      console.log('[Google Sheet] ข้อมูลดิบที่ได้:', text.slice(0, 300));
+      const rows = parseCSV(text);
+      rows.forEach((row, i) => {
+        if (i === 0) return; // ข้าม header
+        const sym = (row[0]||'').toUpperCase();
+        const price = parseFloat(row[1]);
+        if (sym && !isNaN(price)) sheetMap[sym] = price;
+      });
+      console.log('[Google Sheet] แปลงเป็นราคาได้:', sheetMap);
+    } catch(e) {
+      // เข้าเว็บไม่ได้เลย (เช่นติด CORS) — เบราว์เซอร์มักบอกแค่ "Failed to fetch" โดยไม่ระบุสาเหตุ
+      sheetError = e.message || String(e);
+      console.error('[Google Sheet] ดึงข้อมูลไม่สำเร็จ:', e);
+    }
+  }
+
+  // อัปเดตอัตราแลกเปลี่ยนถ้าเจอในชีต
+  if (sheetMap['USDTHB']) {
+    fxRate = sheetMap['USDTHB'];
+    document.getElementById('fx-rate').value = fxRate.toFixed(2);
+    localStorage.setItem('inv_fxrate', fxRate);
+  }
+
+  // รวบรวมสัญลักษณ์ที่ถืออยู่ (heldQty > 0) จากทั้งหุ้น/ทอง/คริปโต
+  const held = calcPnL().filter(p => p.heldQty > 0.0000001);
+  let updated = 0, fellBack = 0;
+  const notFound = [];
+
+  for (const p of held) {
+    const sym = p.name.toUpperCase();
+    if (sheetMap[sym] !== undefined) {
+      livePrices[sym] = { price: sheetMap[sym], currency: p.currency };
+      updated++;
+    } else if (p.type === 'stock' && p.currency === 'THB') {
+      // fallback: หุ้นไทยที่ Google Sheet ดึงไม่ได้ → ลอง Yahoo (.BK) แทน
+      const yPrice = await fetchYahooFallback(sym + '.BK');
+      if (yPrice) { livePrices[sym] = { price: yPrice, currency: 'THB' }; updated++; fellBack++; }
+      else notFound.push(sym);
+    } else {
+      notFound.push(sym);
+    }
+  }
+
+  localStorage.setItem('inv_liveprices', JSON.stringify(livePrices));
+  const now = new Date().toLocaleString('th-TH', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' });
+  localStorage.setItem('inv_live_updated', now);
+  document.getElementById('live-updated').textContent = 'อัปเดตล่าสุด: ' + now;
+
+  renderOverview(); renderTrades();
+
+  // ═══ แจ้งผลแบบระบุสาเหตุจริง ไม่ใช้ข้อความรวมๆ ═══
+  if (updated > 0) {
+    showStatus(`✓ อัปเดตราคา ${updated} รายการ${fellBack>0?` (ใช้ Yahoo fallback ${fellBack} รายการสำหรับหุ้นไทย)`:''}${notFound.length>0?` | ไม่เจอ: ${notFound.join(', ')}`:''}`, 6000);
+  } else if (!url) {
+    showStatus('⚠ ยังไม่ได้วางลิงก์ Google Sheet ในช่องด้านบน');
+  } else if (sheetError) {
+    showStatus(`⚠ เชื่อมต่อ Google Sheet ไม่สำเร็จ: ${sheetError} — เปิด Console (กด F12 → แท็บ Console) เพื่อดูรายละเอียด`, 8000);
+  } else if (Object.keys(sheetMap).length === 0) {
+    showStatus('⚠ อ่านไฟล์ได้แต่ไม่พบราคา — เช็คว่าคอลัมน์ B เป็นตัวเลข ไม่ใช่ #N/A หรือช่องว่าง', 6000);
+  } else {
+    showStatus(`⚠ อ่านชีตสำเร็จ แต่ไม่มี ticker ตรงกับที่ถืออยู่ในพอร์ต (เจอในชีต: ${Object.keys(sheetMap).join(', ')})`, 8000);
+  }
+}
+
+function updateCurrencyLabel() {
+  const cur = document.getElementById('t-currency').value;
+  const label = cur === 'USD' ? '($ USD)' : '(฿ THB)';
+  document.getElementById('t-price-label').textContent = `ราคาต่อหน่วย ${label}`;
+  document.getElementById('t-fee-label').textContent = `ค่าธรรมเนียม ${label} — ถ้ามี`;
+}
+function updateOptCurrencyLabel() {
+  const cur = document.getElementById('o-currency').value;
+  const label = cur === 'USD' ? '($)' : '(฿)';
+  document.getElementById('o-strike-label').textContent = `Strike Price ${label}`;
+  document.getElementById('o-premium-label').textContent = `Premium ที่จ่าย/รับ ${label}`;
+  document.getElementById('o-pnl-label').textContent = `กำไร/ขาดทุน ${label} เมื่อปิด`;
+}
+
+// ═══════════════════════════════
+// HELPERS
+// ═══════════════════════════════
+const fmtB = n => (n < 0 ? '-฿' : '฿') + Math.abs(Math.round(n)).toLocaleString('th-TH');
+const fmtN = (n,d=2) => parseFloat(n).toFixed(d);
+const TYPE_LB = { stock:'หุ้น', gold:'ทอง', crypto:'คริปโต', etf:'ETF' };
+const TYPE_TG = { stock:'tg-s', gold:'tg-g', crypto:'tg-c', etf:'tg-e' };
+const OPT_LB  = { 'call-buy':'Long Call','put-buy':'Long Put','call-sell':'Short Call','put-sell':'Short Put','straddle':'Straddle','spread':'Spread','other':'อื่นๆ' };
+const STAT_LB = { open:'🟡 Open', closed:'✅ Closed', expired:'⬜ Expired' };
+const COLORS  = ['#60a5fa','#fbbf24','#a78bfa','#4ade80','#f87171','#34d399'];
+
+function showStatus(msg, dur=3000) {
+  const b = document.getElementById('sb');
+  b.textContent = msg; b.style.display = 'block';
+  clearTimeout(b._t); b._t = setTimeout(() => b.style.display='none', dur);
+}
+
+// คำนวณ P&L แต่ละ symbol จาก trades (FIFO) — ทุกอย่างแปลงเป็นบาทก่อนคำนวณ
+function calcPnL() {
+  const byName = {};
+  trades.forEach(t => {
+    if (!byName[t.name]) byName[t.name] = { type:t.type, currency:t.currency, buys:[], sells:[] };
+    byName[t.name].currency = t.currency; // ใช้สกุลเงินของรายการล่าสุด
+    const priceTHB = toTHB(t.price, t.currency);
+    const feeTHB   = toTHB(t.fee||0, t.currency);
+    if (t.action==='buy')  byName[t.name].buys.push({ qty:t.qty, price:priceTHB });
+    if (t.action==='sell') byName[t.name].sells.push({ qty:t.qty, price:priceTHB, fee:feeTHB });
+  });
+  const result = [];
+  Object.entries(byName).forEach(([name, d]) => {
+    const totalBuyCost = d.buys.reduce((s,b) => s + b.qty*b.price, 0);
+    const totalBuyQty  = d.buys.reduce((s,b) => s + b.qty, 0);
+    const totalSellRev = d.sells.reduce((s,s2) => s + s2.qty*s2.price - s2.fee, 0);
+    const totalSellQty = d.sells.reduce((s,s2) => s + s2.qty, 0);
+    const avgCost      = totalBuyQty > 0 ? totalBuyCost / totalBuyQty : 0;
+    const realizedPnL  = totalSellRev - (totalSellQty * avgCost);
+    const heldQty       = totalBuyQty - totalSellQty;
+    const live          = livePrices[name.toUpperCase()];
+    const currentPrice  = live ? toTHB(live.price, live.currency) : null;
+    const marketValue   = currentPrice !== null ? heldQty * currentPrice : null;
+    const unrealizedPnL = currentPrice !== null ? (currentPrice - avgCost) * heldQty : 0;
+    result.push({ name, type:d.type, currency:d.currency, totalCost:totalBuyCost, heldQty, avgCost, realizedPnL, currentPrice, marketValue, unrealizedPnL, hasLive: currentPrice!==null });
+  });
+  return result;
+}
+
+// ═══════════════════════════════
+// TABS
+// ═══════════════════════════════
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  const tabs = ['overview','trades','options','analysis'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('on');
+  document.getElementById('p-'+id).classList.add('on');
+  if (id==='overview') renderOverview();
+  if (id==='trades')   renderTrades();
+  if (id==='options')  renderOptions();
+  if (id==='analysis') renderAnalysis();
+}
+
+// ═══════════════════════════════
+// OVERVIEW
+// ═══════════════════════════════
+let ovDonut=null, ovBar=null;
+function renderOverview() {
+  const pnls = calcPnL();
+  const totalCost = pnls.reduce((s,p) => s+p.totalCost, 0);
+  const totalReal = pnls.reduce((s,p) => s+p.realizedPnL, 0);
+  const closedOpts = options.filter(o => o.status !== 'open');
+  const optPnL = closedOpts.reduce((s,o) => s+toTHB(o.pnl||0, o.currency||'THB'), 0);
+  const totalTrades = trades.length + options.length;
+  const wins = [...trades.filter(t=>t.action==='sell').map(t=>({pnl:t.price}))];
+  const closedW = closedOpts.filter(o => (o.pnl||0) > 0).length;
+  const winRate = closedOpts.length > 0 ? (closedW/closedOpts.length*100).toFixed(0) : 0;
+
+  document.getElementById('ov-total').textContent = fmtB(totalCost);
+  document.getElementById('ov-totalsub').textContent = `บันทึกแล้ว ${trades.length} รายการ`;
+  document.getElementById('fx-usd-total').textContent = '$' + Math.round(totalCost/fxRate).toLocaleString('en-US');
+  const pnlEl = document.getElementById('ov-pnl');
+  pnlEl.textContent = fmtB(totalReal);
+  pnlEl.className = 'mvl ' + (totalReal>=0?'up':'dn');
+  document.getElementById('ov-pnlpct').textContent = totalCost>0 ? (totalReal/totalCost*100).toFixed(2)+'% จากต้นทุน' : '—';
+
+  const totalUnreal = pnls.reduce((s,p)=>s+(p.unrealizedPnL||0),0);
+  const liveCount = pnls.filter(p=>p.hasLive).length;
+  const unrealEl = document.getElementById('ov-unreal');
+  unrealEl.textContent = fmtB(totalUnreal);
+  unrealEl.style.color = totalUnreal>=0 ? 'var(--gr)' : 'var(--rd)';
+  document.getElementById('ov-unrealsub').textContent = liveCount>0 ? `มีราคาสด ${liveCount}/${pnls.length} รายการ` : 'ยังไม่ได้ดึงราคาปัจจุบัน';
+
+  const optEl = document.getElementById('ov-opt');
+  optEl.textContent = fmtB(optPnL);
+  optEl.className = 'mvl ' + (optPnL>=0?'up':'dn');
+  document.getElementById('ov-optsub').textContent = `${closedOpts.length} position ปิดแล้ว`;
+
+  // table
+  const tbody = document.getElementById('ov-tbody');
+  tbody.innerHTML = '';
+  document.getElementById('ov-empty').style.display = pnls.length===0?'block':'none';
+  document.getElementById('ov-count').textContent = pnls.length+' รายการ';
+  pnls.forEach(p => {
+    const sym = curSym(p.currency);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><div class="ticker">${p.name}<span class="tag ${TYPE_TG[p.type]}">${TYPE_LB[p.type]}</span></div></td>
+      <td class="r">${p.heldQty>0.0000001 ? p.heldQty.toLocaleString(undefined,{maximumFractionDigits:4}) : '—'}</td>
+      <td class="r">${p.hasLive ? fmtB(p.currentPrice) : (p.heldQty>0.0000001 ? '<span style="color:var(--mu)">ยังไม่อัปเดต</span>' : '—')}</td>
+      <td class="r"><span class="pl-badge ${p.realizedPnL>=0?'pl-g':'pl-r'}">${fmtB(p.realizedPnL)}</span></td>
+      <td class="r">${p.heldQty>0.0000001 ? `<span class="pl-badge ${p.unrealizedPnL>=0?'pl-g':'pl-r'}">${p.hasLive?fmtB(p.unrealizedPnL):'—'}</span>` : '<span style="color:var(--mu)">—</span>'}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // donut by asset type
+  const typeMap = {};
+  pnls.forEach(p => { typeMap[TYPE_LB[p.type]] = (typeMap[TYPE_LB[p.type]]||0) + p.totalCost; });
+  const labels = Object.keys(typeMap), data = Object.values(typeMap);
+  if (ovDonut) ovDonut.destroy();
+  const dc = document.getElementById('ov-donut').getContext('2d');
+  ovDonut = new Chart(dc, {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:COLORS, borderWidth:0, hoverOffset:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{ legend:{display:false} } }
+  });
+  const leg = document.getElementById('ov-legend'); leg.innerHTML='';
+  const tot = data.reduce((s,v)=>s+v,0);
+  labels.forEach((l,i) => {
+    leg.innerHTML += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px;">
+      <span style="width:8px;height:8px;border-radius:2px;background:${COLORS[i]};display:inline-block;flex-shrink:0"></span>
+      <span style="flex:1;color:var(--tx)">${l}</span>
+      <span style="font-family:var(--mn);color:var(--mu)">${tot>0?(data[i]/tot*100).toFixed(1):0}%</span></div>`;
+  });
+
+  // monthly bar
+  const monthly = {};
+  trades.filter(t=>t.action==='sell').forEach(t => {
+    const mon = t.date.slice(0,7);
+    if (!monthly[mon]) monthly[mon] = 0;
+    const buys = trades.filter(b=>b.name===t.name&&b.action==='buy');
+    const avgC = buys.length>0 ? buys.reduce((s,b)=>s+b.price,0)/buys.length : t.price;
+    monthly[mon] += (t.price-avgC)*t.qty - (t.fee||0);
+  });
+  const mkeys = Object.keys(monthly).sort().slice(-6);
+  const mvals = mkeys.map(k=>monthly[k]);
+  if (ovBar) ovBar.destroy();
+  const bc = document.getElementById('ov-bar').getContext('2d');
+  ovBar = new Chart(bc, {
+    type:'bar',
+    data:{ labels:mkeys.map(k=>{ const [y,m]=k.split('-'); return ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][parseInt(m)-1]+' '+String(parseInt(y)+543).slice(-2); }),
+      datasets:[{ label:'P&L', data:mvals, backgroundColor:mvals.map(v=>v>=0?'#4ade80':'#f87171'), borderRadius:4, borderSkipped:false }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtB(c.raw)}}},
+      scales:{ x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#6b7280',font:{size:10}}},
+               y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'฿'+Math.round(v/1000)+'K'},border:{display:false}} } }
+  });
+
+  // stats
+  const sellTrades = trades.filter(t=>t.action==='sell');
+  const winTrades  = sellTrades.filter(t => {
+    const buys = trades.filter(b=>b.name===t.name&&b.action==='buy');
+    const avg = buys.length>0?buys.reduce((s,b)=>s+toTHB(b.price,b.currency),0)/buys.length:toTHB(t.price,t.currency);
+    return toTHB(t.price,t.currency) > avg;
+  });
+  const loseTrades = sellTrades.length - winTrades.length;
+  let bestTrade=null, worstTrade=null;
+  sellTrades.forEach(t => {
+    const buys = trades.filter(b=>b.name===t.name&&b.action==='buy');
+    const avg = buys.length>0?buys.reduce((s,b)=>s+toTHB(b.price,b.currency),0)/buys.length:toTHB(t.price,t.currency);
+    const pl = (toTHB(t.price,t.currency)-avg)*t.qty;
+    if (!bestTrade||pl>bestTrade.pl) bestTrade={name:t.name,pl};
+    if (!worstTrade||pl<worstTrade.pl) worstTrade={name:t.name,pl};
+  });
+  document.getElementById('st-win').textContent  = winTrades.length+' รายการ';
+  document.getElementById('st-lose').textContent = loseTrades+' รายการ';
+  document.getElementById('st-best').textContent  = bestTrade ? `${bestTrade.name} ${fmtB(bestTrade.pl)}` : '—';
+  document.getElementById('st-worst').textContent = worstTrade ? `${worstTrade.name} ${fmtB(worstTrade.pl)}` : '—';
+  document.getElementById('st-optwin').textContent = winRate+'%';
+  const wOpts = closedOpts.filter(o=>(o.pnl||0)>0);
+  const lOpts = closedOpts.filter(o=>(o.pnl||0)<=0);
+  document.getElementById('st-optavg').textContent = wOpts.length>0 ? fmtB(wOpts.reduce((s,o)=>s+(o.pnl||0),0)/wOpts.length) : '—';
+}
+
+// ═══════════════════════════════
+// TRADES
+// ═══════════════════════════════
+function bulkImport() {
+  const raw = document.getElementById('bulk-input').value.trim();
+  if (!raw) { showStatus('⚠ ยังไม่มีข้อความให้นำเข้า'); return; }
+  const type = document.getElementById('bulk-type').value;
+  const currency = document.getElementById('bulk-currency').value;
+  const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l);
+  let added = 0, errors = [];
+
+  lines.forEach((line, i) => {
+    // รองรับคั่นด้วย comma หรือ tab (จาก Excel/CSV)
+    const parts = line.split(/,|\t/).map(p=>p.trim());
+    if (parts.length < 5) { errors.push(`บรรทัด ${i+1}: ข้อมูลไม่ครบ`); return; }
+    let [date, name, action, qty, price, fee] = parts;
+
+    // normalize วันที่ (รองรับ YYYY-MM-DD หรือ DD/MM/YYYY)
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(date)) {
+      const [d,m,y] = date.split('/');
+      date = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { errors.push(`บรรทัด ${i+1}: วันที่ไม่ถูกต้อง (${date})`); return; }
+
+    // normalize action
+    const actionLower = action.toLowerCase();
+    const normAction = (actionLower.includes('buy')||actionLower.includes('ซื้อ')) ? 'buy'
+                       : (actionLower.includes('sell')||actionLower.includes('ขาย')) ? 'sell' : null;
+    if (!normAction) { errors.push(`บรรทัด ${i+1}: ระบุซื้อ/ขายไม่ได้ (${action})`); return; }
+
+    const qtyNum = parseFloat(qty), priceNum = parseFloat(price), feeNum = parseFloat(fee)||0;
+    if (isNaN(qtyNum) || isNaN(priceNum)) { errors.push(`บรรทัด ${i+1}: จำนวนหรือราคาไม่ถูกต้อง`); return; }
+
+    trades.push({
+      id: Date.now() + i, type, name: name.toUpperCase(), action: normAction,
+      date, qty: qtyNum, price: priceNum, fee: feeNum, currency, note: 'นำเข้าอัตโนมัติ'
+    });
+    added++;
+  });
+
+  save(); renderTrades(); renderOverview();
+  if (added > 0) document.getElementById('bulk-input').value = '';
+  if (errors.length === 0) {
+    showStatus(`✓ นำเข้า ${added} รายการเรียบร้อย`);
+  } else {
+    showStatus(`✓ นำเข้า ${added} รายการ | ผิดพลาด ${errors.length} บรรทัด: ${errors.slice(0,2).join(' / ')}`, 6000);
+  }
+}
+
+function updateTradeTypeUI() {}
+function clearTradeForm() {
+  ['t-name','t-qty','t-price','t-fee','t-note'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('t-date').value='';
+  document.getElementById('t-currency').value='THB';
+  updateCurrencyLabel();
+}
+function addTrade() {
+  const name     = document.getElementById('t-name').value.trim().toUpperCase();
+  const type     = document.getElementById('t-type').value;
+  const action   = document.getElementById('t-action').value;
+  const date     = document.getElementById('t-date').value;
+  const currency = document.getElementById('t-currency').value;
+  const qty      = parseFloat(document.getElementById('t-qty').value);
+  const price    = parseFloat(document.getElementById('t-price').value);
+  const fee      = parseFloat(document.getElementById('t-fee').value)||0;
+  const note     = document.getElementById('t-note').value.trim();
+  if (!name||!date||isNaN(qty)||isNaN(price)) { showStatus('⚠ กรุณากรอกข้อมูลให้ครบ'); return; }
+  trades.push({ id:Date.now(), type, name, action, date, qty, price, fee, currency, note });
+  save(); renderTrades(); renderOverview();
+  showStatus(`✓ บันทึกรายการ ${action==='buy'?'ซื้อ':'ขาย'} ${name} แล้ว`);
+  clearTradeForm();
+}
+function removeTrade(id) {
+  const t = trades.find(x=>x.id===id);
+  if (!t||!confirm(`ลบรายการ ${t.action==='buy'?'ซื้อ':'ขาย'} ${t.name}?`)) return;
+  trades = trades.filter(x=>x.id!==id); save(); renderTrades(); renderOverview();
+  showStatus('ลบรายการแล้ว');
+}
+function renderTrades() {
+  const filter = document.getElementById('t-filter').value;
+  const list   = filter==='all' ? trades : trades.filter(t=>t.type===filter);
+  const sorted = [...list].sort((a,b)=>b.date.localeCompare(a.date));
+  const tbody  = document.getElementById('t-tbody');
+  tbody.innerHTML='';
+  document.getElementById('t-empty').style.display = sorted.length===0?'block':'none';
+  document.getElementById('t-count').textContent = sorted.length+' รายการ';
+  sorted.forEach(t => {
+    const cur      = t.currency || 'THB';
+    const sym      = curSym(cur);
+    const totalOrig= t.qty * t.price;
+    const totalTHB = t.qty * toTHB(t.price, cur);
+    const feeTHB   = toTHB(t.fee||0, cur);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:var(--mn);font-size:11px;color:var(--mu)">${t.date}</td>
+      <td><div class="ticker">${t.name}<span class="tag ${TYPE_TG[t.type]}">${TYPE_LB[t.type]}</span>${cur==='USD'?'<span class="cur-badge cur-usd">USD</span>':''}</div></td>
+      <td class="c"><span class="chip ${t.action==='buy'?'chip-g':'chip-r'}">${t.action==='buy'?'ซื้อ':'ขาย'}</span></td>
+      <td class="r">${t.qty.toLocaleString()}</td>
+      <td class="r">${sym}${t.price.toLocaleString()}</td>
+      <td class="r">${sym}${Math.round(totalOrig).toLocaleString()}</td>
+      <td class="r">฿${Math.round(totalTHB).toLocaleString()}</td>
+      <td class="r">${t.fee>0?'฿'+Math.round(feeTHB).toLocaleString():'—'}</td>
+      <td style="font-size:11px;color:var(--mu);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.note||'—'}</td>
+      <td><button class="delbtn" onclick="removeTrade(${t.id})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ═══════════════════════════════
+// OPTIONS
+// ═══════════════════════════════
+function toggleOptPnlField() {
+  const status = document.getElementById('o-status').value;
+  document.getElementById('o-pnl-wrap').style.display = status === 'open' ? 'none' : 'block';
+}
+let optBar=null;
+function clearOptionForm() {
+  ['o-underlying','o-strike','o-premium','o-note','o-pnl'].forEach(id=>document.getElementById(id).value='');
+  ['o-open-date','o-expiry'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('o-contracts').value='1';
+  document.getElementById('o-status').value='open';
+  document.getElementById('o-currency').value='THB';
+  updateOptCurrencyLabel();
+  toggleOptPnlField();
+}
+function addOption() {
+  const underlying = document.getElementById('o-underlying').value.trim().toUpperCase();
+  const type       = document.getElementById('o-type').value;
+  const openDate   = document.getElementById('o-open-date').value;
+  const currency   = document.getElementById('o-currency').value;
+  const strike     = parseFloat(document.getElementById('o-strike').value)||0;
+  const premium    = parseFloat(document.getElementById('o-premium').value)||0;
+  const contracts  = parseInt(document.getElementById('o-contracts').value)||1;
+  const expiry     = document.getElementById('o-expiry').value;
+  const pnl        = parseFloat(document.getElementById('o-pnl').value)||0;
+  const status     = document.getElementById('o-status').value;
+  const note       = document.getElementById('o-note').value.trim();
+  if (!underlying||!openDate) { showStatus('⚠ กรุณากรอกข้อมูลให้ครบ'); return; }
+  options.push({ id:Date.now(), underlying, type, openDate, strike, premium, contracts, expiry, pnl, status, currency, note });
+  save(); renderOptions(); renderOverview();
+  showStatus(`✓ บันทึก Options ${underlying} แล้ว`);
+  clearOptionForm();
+}
+function removeOption(id) {
+  const o = options.find(x=>x.id===id);
+  if (!o||!confirm(`ลบรายการ ${o.underlying}?`)) return;
+  options = options.filter(x=>x.id!==id); save(); renderOptions(); renderOverview();
+  showStatus('ลบรายการ Options แล้ว');
+}
+function renderOptions() {
+  const closed = options.filter(o=>o.status!=='open');
+  const pnlTHB = o => toTHB(o.pnl||0, o.currency||'THB');
+  const totalPnL = closed.reduce((s,o)=>s+pnlTHB(o),0);
+  const wins  = closed.filter(o=>pnlTHB(o)>0);
+  const loses = closed.filter(o=>pnlTHB(o)<=0);
+  const winRate = closed.length>0?(wins.length/closed.length*100).toFixed(0):0;
+  const avgWin  = wins.length>0   ? wins.reduce((s,o)=>s+pnlTHB(o),0)/wins.length : 0;
+  const avgLoss = loses.length>0  ? loses.reduce((s,o)=>s+pnlTHB(o),0)/loses.length : 0;
+  const openCount = options.filter(o=>o.status==='open').length;
+  const expCount  = options.filter(o=>o.status==='expired').length;
+
+  const totEl = document.getElementById('oo-total');
+  totEl.textContent = fmtB(totalPnL); totEl.className='chip '+(totalPnL>=0?'chip-g':'chip-r');
+  document.getElementById('oo-win').textContent    = winRate+'%';
+  document.getElementById('oo-avgwin').textContent = avgWin ? fmtB(avgWin) : '—';
+  document.getElementById('oo-avgloss').textContent= avgLoss ? fmtB(avgLoss) : '—';
+  document.getElementById('oo-open').textContent   = openCount+' position';
+  document.getElementById('oo-exp').textContent    = expCount+' position';
+
+  // bar chart per trade
+  const sorted = [...options].sort((a,b)=>a.openDate.localeCompare(b.openDate));
+  if (optBar) optBar.destroy();
+  const bc = document.getElementById('o-bar').getContext('2d');
+  optBar = new Chart(bc, {
+    type:'bar',
+    data:{ labels: sorted.map(o=>o.underlying),
+      datasets:[{ label:'P&L', data:sorted.map(o=>pnlTHB(o)),
+        backgroundColor:sorted.map(o=>pnlTHB(o)>=0?'#4ade80':'#f87171'), borderRadius:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtB(c.raw)}}},
+      scales:{ x:{grid:{display:false},ticks:{color:'#6b7280',font:{size:10}}},
+               y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'฿'+Math.round(v/1000)+'K'},border:{display:false}} } }
+  });
+
+  // table
+  const tbody = document.getElementById('o-tbody');
+  tbody.innerHTML='';
+  document.getElementById('o-empty').style.display = options.length===0?'block':'none';
+  document.getElementById('o-count').textContent = options.length+' รายการ';
+  [...options].sort((a,b)=>b.openDate.localeCompare(a.openDate)).forEach(o => {
+    const cur = o.currency || 'THB';
+    const sym = curSym(cur);
+    const pTHB = pnlTHB(o);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:var(--mn);font-size:11px;color:var(--mu)">${o.openDate}</td>
+      <td><div class="ticker">${o.underlying}${cur==='USD'?'<span class="cur-badge cur-usd">USD</span>':''}</div></td>
+      <td><span class="tag tg-o">${OPT_LB[o.type]||o.type}</span></td>
+      <td class="r">${o.strike>0?sym+o.strike.toLocaleString():'—'}</td>
+      <td class="r">${sym}${o.premium.toLocaleString()}</td>
+      <td class="r">${o.contracts}</td>
+      <td class="r"><span class="pl-badge ${pTHB>=0?'pl-g':'pl-r'}">${o.status==='open'?'—':fmtB(pTHB)}</span></td>
+      <td class="c" style="font-size:11px">${STAT_LB[o.status]}</td>
+      <td style="font-size:10px;color:var(--mu);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.note||'—'}</td>
+      <td><button class="delbtn" onclick="removeOption(${o.id})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ═══════════════════════════════
+// ANALYSIS
+// ═══════════════════════════════
+let anBar=null, anPie=null, anFee=null;
+function renderAnalysis() {
+  const pnls = calcPnL();
+  const typeMap = {}, winMap={win:0,lose:0};
+  pnls.forEach(p => {
+    const lb = TYPE_LB[p.type];
+    typeMap[lb] = (typeMap[lb]||0) + p.realizedPnL;
+    if (p.realizedPnL>=0) winMap.win++; else winMap.lose++;
+  });
+
+  // bar by type
+  if (anBar) anBar.destroy();
+  const bl = Object.keys(typeMap), bd = Object.values(typeMap);
+  anBar = new Chart(document.getElementById('an-bar').getContext('2d'), {
+    type:'bar',
+    data:{ labels:bl, datasets:[{label:'P&L',data:bd,backgroundColor:bd.map(v=>v>=0?'#4ade80':'#f87171'),borderRadius:6}] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtB(c.raw)}}},
+      scales:{ x:{grid:{display:false},ticks:{color:'#6b7280'}},
+               y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#6b7280',callback:v=>'฿'+Math.round(v/1000)+'K'},border:{display:false}} } }
+  });
+
+  // pie win/loss
+  if (anPie) anPie.destroy();
+  anPie = new Chart(document.getElementById('an-pie').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels:['กำไร','ขาดทุน'],
+      datasets:[{data:[winMap.win,winMap.lose],backgroundColor:['#4ade80','#f87171'],borderWidth:0,hoverOffset:4}] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'60%',
+      plugins:{legend:{position:'bottom',labels:{color:'#6b7280',font:{size:11},padding:12}}} }
+  });
+
+  // fee accumulation
+  const feeByMon = {};
+  trades.forEach(t => {
+    if ((t.fee||0)===0) return;
+    const mon = t.date.slice(0,7);
+    feeByMon[mon] = (feeByMon[mon]||0) + (t.fee||0);
+  });
+  const fkeys = Object.keys(feeByMon).sort().slice(-6);
+  if (anFee) anFee.destroy();
+  anFee = new Chart(document.getElementById('an-fee').getContext('2d'), {
+    type:'line',
+    data:{ labels:fkeys, datasets:[{label:'ค่าธรรมเนียม',data:fkeys.map(k=>feeByMon[k]),
+      borderColor:'#f87171',backgroundColor:'rgba(248,113,113,.08)',borderWidth:2,fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#f87171'}] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#6b7280',font:{size:10}}},
+               y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'฿'+v},border:{display:false}} } }
+  });
+
+  // stats
+  const turnover = trades.reduce((s,t)=>s+t.qty*t.price,0);
+  const totalFee = trades.reduce((s,t)=>s+(t.fee||0),0);
+  let best=null,worst=null;
+  pnls.forEach(p => {
+    if (!best||p.realizedPnL>best.pnl) best={name:p.name,pnl:p.realizedPnL};
+    if (!worst||p.realizedPnL<worst.pnl) worst={name:p.name,pnl:p.realizedPnL};
+  });
+  const monthly={};
+  trades.filter(t=>t.action==='sell').forEach(t=>{
+    const mon=t.date.slice(0,7);
+    const buys=trades.filter(b=>b.name===t.name&&b.action==='buy');
+    const avg=buys.length>0?buys.reduce((s,b)=>s+b.price,0)/buys.length:t.price;
+    monthly[mon]=(monthly[mon]||0)+(t.price-avg)*t.qty;
+  });
+  const bestMon = Object.entries(monthly).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('an-turnover').textContent = fmtB(turnover);
+  document.getElementById('an-fee-total').textContent = fmtB(totalFee);
+  document.getElementById('an-best').textContent  = best  ? `${best.name} ${fmtB(best.pnl)}`  : '—';
+  document.getElementById('an-worst').textContent = worst ? `${worst.name} ${fmtB(worst.pnl)}` : '—';
+  document.getElementById('an-bestmon').textContent = bestMon ? `${bestMon[0]} (${fmtB(bestMon[1])})` : '—';
+  document.getElementById('an-trades').textContent = trades.length+' รายการ';
+}
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+document.getElementById('t-date').valueAsDate = new Date();
+document.getElementById('o-open-date').valueAsDate = new Date();
+document.getElementById('fx-rate').value = fxRate;
+toggleOptPnlField();
+renderOverview(); renderTrades(); renderOptions();
+</script>
+</body>
+</html>
